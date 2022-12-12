@@ -2,9 +2,14 @@
 title: "City of Toronto - Data Analyst & Integrator Assessment"
 author: "Jedid Ahn"
 date: "2022-12-12"
-output: html_document
-#always_allow_html: yes
+output:
+  html_document:
+    toc: true
 ---
+
+**DISCLAIMER: This assessment has been submitted as an HTML file rather than PDF, as there are multiple issues with presentation of data when knitting as a PDF. This includes generated maps that are out of alignment, as well as code that is cut off.**
+
+<hr>
 
 ```{r setup, include=FALSE}
 if (!require("knitr")){
@@ -36,13 +41,6 @@ if (!require("leaflet")){
 if (!require("sf")){
   install.packages("sf")
 }
-
-# Code required if knitting as PDF.
-# if (!require("webshot")){
-#   install.packages("webshot")
-# }
-# 
-# webshot::install_phantomjs()
 ```
 
 To start, I will access parking ticket data via the API and the opendatatoronto library. Data between 2016 and 2020 will be downloaded as per the instructions.
@@ -66,18 +64,18 @@ I will identify the top 20 infraction types within the period of 2016-2020, by c
 ```{r}
 #' @title calc_total_infractions
 #'
-#' @description Pipeline to calculate the total number of infractions across 
-#' all infraction types.
+#' @description Calculate the total number of infractions across all 
+#' infraction types.
 #' @author Jedid Ahn
 #' 
 #' @param parking_ticket_data List of data frames containing parking ticket 
 #' data across multiple years.
 #' 
-#' @return infractions_DF Two column data frame containing infraction type 
+#' @return all_infractions Two column data frame containing infraction type 
 #' alongside frequency.
 #' 
 calc_total_infractions <- function(parking_ticket_data){
-  infractions_DF <- data.frame(Type = c("Placeholder"), Freq = c(0))
+  all_infractions <- data.frame(Type = c("Placeholder"), Freq = c(0))
   
   for (data in parking_ticket_data){
     data$infraction <- paste0(data$infraction_code, ") ", 
@@ -87,41 +85,42 @@ calc_total_infractions <- function(parking_ticket_data){
     colnames(infractions_data) <- c("Type", "Freq")
     
     # Do a full join of the main infractions df and the new df generated.
-    infractions_DF <- dplyr::full_join(infractions_DF, infractions_data, 
+    all_infractions <- dplyr::full_join(all_infractions, infractions_data, 
                                        by = "Type") %>% 
       tidyr::replace_na(list(Freq.x = 0, Freq.y = 0))
-    infractions_DF$Freq <- infractions_DF$Freq.x + infractions_DF$Freq.y
-    infractions_DF <- infractions_DF %>% dplyr::select(-Freq.x, -Freq.y)
+    all_infractions$Freq <- all_infractions$Freq.x + all_infractions$Freq.y
+    all_infractions <- all_infractions %>% dplyr::select(-Freq.x, -Freq.y)
   }
 
-  return (infractions_DF)
+  return (all_infractions)
 }
 ```
 
 
-The top 20 infraction types are the following, with the Type column containing both the infraction code (before the )) and the infraction description.
+The top 20 infraction types are printed below, which contain both the infraction code (before the )) and the infraction description.
 ```{r}
 # Run the total infraction calculations pipeline.
-infractions_DF <- calc_total_infractions(parking_ticket_data)
+all_infractions <- calc_total_infractions(parking_ticket_data)
 # Order by frequency and filter for top 20 infraction types.
-top_infractions <- head(infractions_DF[order(infractions_DF$Freq, 
-                                             decreasing = TRUE), ], 20)
+top_infractions <- head(all_infractions[order(all_infractions$Freq,
+                                              decreasing = TRUE), ], 20)
 
 for (i in 1:nrow(top_infractions)){
-  print(paste0(top_infractions$Type[i], " with frequency ", 
-               top_infractions$Freq[i]))
+  writeLines(paste(top_infractions$Type[i], "occurred", 
+                   top_infractions$Freq[i], "times.\n"))
 }
 ```
 
+<br><br>
 
-# 1. What is the most common location for each of the top 20 infraction types? (Between 2016-2020.)
+# 1. What is the most common location for each of the top 20 infraction types? (Between 2016-2020)
 
 This function returns the most common location associated with a particular infraction code number.
 ```{r}
 #' @title find_most_common_location
 #'
-#' @description Pipeline to find the most common location associated with 
-#' a particular infraction code number.
+#' @description Find the most common location associated with a particular
+#' infraction code number.
 #' @author Jedid Ahn
 #' 
 #' @param parking_ticket_data List of data frames containing parking ticket 
@@ -169,7 +168,7 @@ for (i in 1:nrow(top_infractions)){
   top_infractions$Address[i] <- most_common_location
   
   # Print
-  print(paste0(infraction, ": ", most_common_location))
+  writeLines(paste0(infraction, ": ", most_common_location, "\n"))
 }
 ```
 
@@ -179,14 +178,14 @@ for (i in 1:nrow(top_infractions)){
 
 I will load in the most recent green P data from 2019. The main columns are lng and lat, which will be used to add the marker in the map. 
 ```{r}
-green_p_res <- list_package_resources("https://open.toronto.ca/dataset/green-p-parking/")
-green_p_2019 <- (green_p_res[1, ] %>% get_resource())[[1]]
+green_p_2019_res <- list_package_resources("https://open.toronto.ca/dataset/green-p-parking/")
+green_p_2019 <- (green_p_2019_res[1, ] %>% get_resource())[[1]]
 ```
 
-I will retrieve the longitudinal and latitudinal coordinates of each infraction location using the one address repository.
+I will retrieve the longitudinal and latitudinal coordinates of each infraction location by geocoding using the one address repository.
 ```{r}
-geocoder_res <- list_package_resources("https://open.toronto.ca/dataset/address-points-municipal-toronto-one-address-repository/")
-geocoder_shape <- (geocoder_res[3, ] %>% get_resource())
+geocoder_shape_res <- list_package_resources("https://open.toronto.ca/dataset/address-points-municipal-toronto-one-address-repository/")
+geocoder_shape <- (geocoder_shape_res[3, ] %>% get_resource())
 ```
 
 
@@ -276,15 +275,15 @@ map_closest_green_p <- function(lng_value, lat_value, infraction){
                      fillOpacity = 1, stroke = FALSE) %>% 
     addPopups(lng = green_p_lng, lat = green_p_lat, popup = green_p_identifier)
   
-  print(paste0(green_p_identifier, 
-               " exists close to the common infraction location: ", 
-               infraction))
-  print("")
+  writeLines(paste(green_p_identifier, 
+                   "exists close to the common infraction location:", 
+                   infraction, "\n"))
   
   return (infraction_map)
 }
 ```
 
+Using the map_closest_green_p function, I will locate and print the closest green P lot to each of the 20 common infraction locations, while generating a map for each.
 ```{r}
 infraction_maps <- vector("list", 20)
 
@@ -299,13 +298,12 @@ for (i in 1:nrow(top_infractions)){
   top_infractions$lng[i] <- lng_value
   top_infractions$lat[i] <- lat_value
   
-  infraction <- paste0(top_infractions$Type[i], " AT ", 
-                       top_infractions$Address[i])
+  infraction <- paste0(top_infractions$Address[i])
   infraction_maps[[i]] <- map_closest_green_p(lng_value, lat_value, infraction)
 }
 ```
 
-With 20 maps generated for each infraction location, I will now create a full map containing all 20 infraction locations and the closest green P lots to each one (20 in total).
+With 20 maps generated for each infraction location, I will now summarize the data by creating a full map containing all 20 infraction locations and the closest green P lots to each one (20 in total).
 ```{r}
 full_infraction_map <- leaflet::leaflet() %>%
     addTiles()
@@ -357,7 +355,7 @@ for (i in 1:nrow(top_infractions)){
 }
 ```
 
-Clicking on a circle will display more information about that particular infraction location (if red) or green P parking lot (if green). The popup will specify the address.
+Clicking on a circle will display more information about that particular infraction location (if red) or green P lot (if green). The popup will specify the address.
 ```{r}
 full_infraction_map
 ```
@@ -382,8 +380,8 @@ infraction_maps[[20]]
 
 To start, I will load in the neighbourhoods historical 140 Shapefile.
 ```{r}
-hood_res <- list_package_resources("https://open.toronto.ca/dataset/neighbourhoods/")
-hood_140 <- (hood_res[5, ] %>% get_resource())
+hood_140_res <- list_package_resources("https://open.toronto.ca/dataset/neighbourhoods/")
+hood_140 <- (hood_140_res[5, ] %>% get_resource())
 ```
 
 Then, I will use the Shapefile and the sf package to find the neighbourhood name of the infraction location.
@@ -396,7 +394,7 @@ library(sf)
 #' and latitudinal coordinates of an infraction location.
 #' @author Jedid Ahn
 #' 
-#' @param lng_value Longitudine.
+#' @param lng_value Longitude.
 #' @param lat_value Latitude.
 #' 
 #' @return neighbourhood_name Name of the neighbourhood.
@@ -425,13 +423,13 @@ get_neighbourhood_of_infraction <- function(lng_value, lat_value){
 }
 ```
 
-Now that I identified the neighbourhood of each of the 20 infraction locations, I will load in the neighbourhood profiles data. Columns 7 to 146 represent the neighbourhoods of the City of Toronto.
+Now that I am able to identify the neighbourhood of each of the 20 infraction locations, I will load in the neighbourhood profiles data. Columns 7 to 146 represent the neighbourhoods of the City of Toronto.
 ```{r}
 hood_profile_res <- list_package_resources("https://open.toronto.ca/dataset/neighbourhood-profiles/")
 hood_profile <- (hood_profile_res[1, ] %>% get_resource())
 ```
 
-I will perform a simple outlier test using percentiles to determine any sociodemographic characteristics of a particular neighbourhood. The thresholds are set to 0.5% and 99.5% for the purpose of this analysis.
+I will perform a simple outlier test using percentiles to determine any sociodemographic characteristics of a particular neighbourhood. The thresholds are set to 0.5% and 99.5%.
 ```{r}
 #' @title find_sociodemo_outliers
 #'
@@ -443,7 +441,7 @@ I will perform a simple outlier test using percentiles to determine any sociodem
 #' City of Toronto.
 #' @param neighbourhood Specific neighbourhood of interest.
 #' 
-#' @return characteristics List of vectors containing lower bound 
+#' @return characteristics List of 2 vectors containing lower bound 
 #' characteristics and upper bound characteristics.
 #' 
 find_sociodemo_outliers <- function(hood_profile, neighbourhood){
@@ -474,12 +472,20 @@ find_sociodemo_outliers <- function(hood_profile, neighbourhood){
     }
   }
   
+  
+  if (is.null(lower_characteristics)){
+    lower_characteristics <- "None"
+  }
+  if (is.null(upper_characteristics)){
+    upper_characteristics <- "None"
+  }
+  
   characteristics <- list(lower_characteristics, upper_characteristics)
   return (characteristics)
 }
 ```
 
-This function will print the outlying sociodemographic characteristics for a particular neighbourhood. Moving forward with the analysis, only the neighbourhoods corresponding to the top 6 infraction locations will be examined. The rest can be examined independently by simply calling this function.
+This function will print the outlying sociodemographic characteristics for a particular neighbourhood. For simplicity, only the neighbourhoods corresponding to the top 6 infraction locations will be examined. The rest can be examined independently by simply calling this function.
 ```{r}
 #' @title print_sociodemo_characteristics
 #'
@@ -500,8 +506,8 @@ print_sociodemo_characteristics <- function(top_infractions, index,
   # location resides in.
   neighbourhood <- get_neighbourhood_of_infraction(top_infractions$lng[index],
                                                    top_infractions$lat[index])
-  print(neighbourhood)
-  print("")
+  writeLines(neighbourhood)
+  writeLines("_______________________________\n")
     
   # Then identify sociodemographic outliers.
   characteristics <- suppressWarnings(find_sociodemo_outliers(hood_profile, 
@@ -509,11 +515,11 @@ print_sociodemo_characteristics <- function(top_infractions, index,
     
   # characteristics[[1]] are lower extreme characteristics.
   # characteristics[[2]] are higher extreme characteristics.
-  print("LOWER EXTREME CHARACTERISTICS")
-  print(characteristics[[1]])
-  print("____________________")
-  print("HIGHER EXTREME CHARACTERISTICS")
-  print(characteristics[[2]])
+  writeLines("LOWER EXTREME CHARACTERISTICS\n")
+  writeLines(characteristics[[1]])
+  writeLines("\n_______________________________\n")
+  writeLines("HIGHER EXTREME CHARACTERISTICS\n")
+  writeLines(characteristics[[2]])
 }
 ```
 
@@ -524,7 +530,7 @@ print_sociodemo_characteristics(top_infractions, 1, hood_profile)
 ```
 
 
-The sociodemographic trend for Bay Street Corridor is the higher minority population and low income status of many residents. This may explain why there are many infractions at 20 EDWARD ST.
+The sociodemographic trend for Bay Street Corridor is the higher minority population and the number of residents with low disposable income. This may explain why there are many infractions at 20 EDWARD ST.
 ```{r}
 print_sociodemo_characteristics(top_infractions, 2, hood_profile)
 ```

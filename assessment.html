@@ -4407,7 +4407,25 @@ Integrator Assessment</h1>
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#what-is-the-most-common-location-for-each-of-the-top-20-infraction-types-between-2016-2020">1.
+What is the most common location for each of the top 20 infraction
+types? (Between 2016-2020)</a></li>
+<li><a href="#are-there-alternative-parking-options-available-near-the-common-infraction-locations">2.
+Are there alternative parking options available near the common
+infraction locations?</a></li>
+<li><a href="#are-there-any-socio-demographic-trends-of-note-in-the-areas-with-more-infractions">3.
+Are there any socio-demographic trends of note in the areas with more
+infractions?</a></li>
+</ul>
+</div>
 
+<p><strong>DISCLAIMER: This assessment has been submitted as an HTML
+file rather than PDF, as there are multiple issues with presentation of
+data when knitting as a PDF. This includes generated maps that are out
+of alignment, as well as code that is cut off.</strong></p>
+<hr>
 <p>To start, I will access parking ticket data via the API and the
 opendatatoronto library. Data between 2016 and 2020 will be downloaded
 as per the instructions.</p>
@@ -4430,18 +4448,18 @@ parking_ticket_data &lt;- c(data_2016, data_2017, data_2018, data_2019, data_202
 infraction types.</p>
 <pre class="r"><code>#&#39; @title calc_total_infractions
 #&#39;
-#&#39; @description Pipeline to calculate the total number of infractions across 
-#&#39; all infraction types.
+#&#39; @description Calculate the total number of infractions across all 
+#&#39; infraction types.
 #&#39; @author Jedid Ahn
 #&#39; 
 #&#39; @param parking_ticket_data List of data frames containing parking ticket 
 #&#39; data across multiple years.
 #&#39; 
-#&#39; @return infractions_DF Two column data frame containing infraction type 
+#&#39; @return all_infractions Two column data frame containing infraction type 
 #&#39; alongside frequency.
 #&#39; 
 calc_total_infractions &lt;- function(parking_ticket_data){
-  infractions_DF &lt;- data.frame(Type = c(&quot;Placeholder&quot;), Freq = c(0))
+  all_infractions &lt;- data.frame(Type = c(&quot;Placeholder&quot;), Freq = c(0))
   
   for (data in parking_ticket_data){
     data$infraction &lt;- paste0(data$infraction_code, &quot;) &quot;, 
@@ -4451,57 +4469,76 @@ calc_total_infractions &lt;- function(parking_ticket_data){
     colnames(infractions_data) &lt;- c(&quot;Type&quot;, &quot;Freq&quot;)
     
     # Do a full join of the main infractions df and the new df generated.
-    infractions_DF &lt;- dplyr::full_join(infractions_DF, infractions_data, 
+    all_infractions &lt;- dplyr::full_join(all_infractions, infractions_data, 
                                        by = &quot;Type&quot;) %&gt;% 
       tidyr::replace_na(list(Freq.x = 0, Freq.y = 0))
-    infractions_DF$Freq &lt;- infractions_DF$Freq.x + infractions_DF$Freq.y
-    infractions_DF &lt;- infractions_DF %&gt;% dplyr::select(-Freq.x, -Freq.y)
+    all_infractions$Freq &lt;- all_infractions$Freq.x + all_infractions$Freq.y
+    all_infractions &lt;- all_infractions %&gt;% dplyr::select(-Freq.x, -Freq.y)
   }
 
-  return (infractions_DF)
+  return (all_infractions)
 }</code></pre>
-<p>The top 20 infraction types are the following, with the Type column
-containing both the infraction code (before the )) and the infraction
-description.</p>
+<p>The top 20 infraction types are printed below, which contain both the
+infraction code (before the )) and the infraction description.</p>
 <pre class="r"><code># Run the total infraction calculations pipeline.
-infractions_DF &lt;- calc_total_infractions(parking_ticket_data)
+all_infractions &lt;- calc_total_infractions(parking_ticket_data)
 # Order by frequency and filter for top 20 infraction types.
-top_infractions &lt;- head(infractions_DF[order(infractions_DF$Freq, 
-                                             decreasing = TRUE), ], 20)
+top_infractions &lt;- head(all_infractions[order(all_infractions$Freq,
+                                              decreasing = TRUE), ], 20)
 
 for (i in 1:nrow(top_infractions)){
-  print(paste0(top_infractions$Type[i], &quot; with frequency &quot;, 
-               top_infractions$Freq[i]))
+  writeLines(paste(top_infractions$Type[i], &quot;occurred&quot;, 
+                   top_infractions$Freq[i], &quot;times.\n&quot;))
 }</code></pre>
-<pre><code>## [1] &quot;3) PARK ON PRIVATE PROPERTY with frequency 1850012&quot;
-## [1] &quot;5) PARK-SIGNED HWY-PROHIBIT DY/TM with frequency 1593407&quot;
-## [1] &quot;29) PARK PROHIBITED TIME NO PERMIT with frequency 1356495&quot;
-## [1] &quot;207) PARK MACHINE-REQD FEE NOT PAID with frequency 1073119&quot;
-## [1] &quot;9) STOP-SIGNED HWY-PROHIBIT TM/DY with frequency 475579&quot;
-## [1] &quot;2) PARK - LONGER THAN 3 HOURS with frequency 426977&quot;
-## [1] &quot;406) PARK-VEH. W/O VALID ONT PLATE with frequency 346196&quot;
-## [1] &quot;8) STAND VEH.-PROHIBIT TIME/DAY with frequency 332565&quot;
-## [1] &quot;403) STOP-SIGNED HIGHWAY-RUSH HOUR with frequency 289880&quot;
-## [1] &quot;6) PARK-SIGNED HWY-EXC PERMT TIME with frequency 268236&quot;
-## [1] &quot;210) PARK FAIL TO DISPLAY RECEIPT with frequency 213396&quot;
-## [1] &quot;15) PARK-WITHIN 3M OF FIRE HYDRANT with frequency 136763&quot;
-## [1] &quot;28) PARK-N.YORK 2AM-6AM DEC1-MAR31 with frequency 122425&quot;
-## [1] &quot;2) PARK - LONGER THAN 3 HOURS  with frequency 116500&quot;
-## [1] &quot;192) STAND SIGNED TRANSIT STOP with frequency 98021&quot;
-## [1] &quot;4) PARK ON MUNICIPAL PROPERTY with frequency 87799&quot;
-## [1] &quot;312) PARKING MACH-NOT USED/NO FEE with frequency 83361&quot;
-## [1] &quot;415) PARK COMMERC LOAD ZONE NOT LDG with frequency 80083&quot;
-## [1] &quot;30) STOP-(ON/OVER) (SIDEWK/FTPATH) with frequency 65786&quot;
-## [1] &quot;347) PARK IN A FIRE ROUTE with frequency 62207&quot;</code></pre>
-<div id="what-is-the-most-common-location-for-each-of-the-top-20-infraction-types-between-2016-2020." class="section level1">
+<pre><code>## 3) PARK ON PRIVATE PROPERTY occurred 1850012 times.
+## 
+## 5) PARK-SIGNED HWY-PROHIBIT DY/TM occurred 1593407 times.
+## 
+## 29) PARK PROHIBITED TIME NO PERMIT occurred 1356495 times.
+## 
+## 207) PARK MACHINE-REQD FEE NOT PAID occurred 1073119 times.
+## 
+## 9) STOP-SIGNED HWY-PROHIBIT TM/DY occurred 475579 times.
+## 
+## 2) PARK - LONGER THAN 3 HOURS occurred 426977 times.
+## 
+## 406) PARK-VEH. W/O VALID ONT PLATE occurred 346196 times.
+## 
+## 8) STAND VEH.-PROHIBIT TIME/DAY occurred 332565 times.
+## 
+## 403) STOP-SIGNED HIGHWAY-RUSH HOUR occurred 289880 times.
+## 
+## 6) PARK-SIGNED HWY-EXC PERMT TIME occurred 268236 times.
+## 
+## 210) PARK FAIL TO DISPLAY RECEIPT occurred 213396 times.
+## 
+## 15) PARK-WITHIN 3M OF FIRE HYDRANT occurred 136763 times.
+## 
+## 28) PARK-N.YORK 2AM-6AM DEC1-MAR31 occurred 122425 times.
+## 
+## 2) PARK - LONGER THAN 3 HOURS  occurred 116500 times.
+## 
+## 192) STAND SIGNED TRANSIT STOP occurred 98021 times.
+## 
+## 4) PARK ON MUNICIPAL PROPERTY occurred 87799 times.
+## 
+## 312) PARKING MACH-NOT USED/NO FEE occurred 83361 times.
+## 
+## 415) PARK COMMERC LOAD ZONE NOT LDG occurred 80083 times.
+## 
+## 30) STOP-(ON/OVER) (SIDEWK/FTPATH) occurred 65786 times.
+## 
+## 347) PARK IN A FIRE ROUTE occurred 62207 times.</code></pre>
+<p><br><br></p>
+<div id="what-is-the-most-common-location-for-each-of-the-top-20-infraction-types-between-2016-2020" class="section level1">
 <h1>1. What is the most common location for each of the top 20
-infraction types? (Between 2016-2020.)</h1>
+infraction types? (Between 2016-2020)</h1>
 <p>This function returns the most common location associated with a
 particular infraction code number.</p>
 <pre class="r"><code>#&#39; @title find_most_common_location
 #&#39;
-#&#39; @description Pipeline to find the most common location associated with 
-#&#39; a particular infraction code number.
+#&#39; @description Find the most common location associated with a particular
+#&#39; infraction code number.
 #&#39; @author Jedid Ahn
 #&#39; 
 #&#39; @param parking_ticket_data List of data frames containing parking ticket 
@@ -4546,28 +4583,47 @@ each of the top 20 infraction types.</p>
   top_infractions$Address[i] &lt;- most_common_location
   
   # Print
-  print(paste0(infraction, &quot;: &quot;, most_common_location))
+  writeLines(paste0(infraction, &quot;: &quot;, most_common_location, &quot;\n&quot;))
 }</code></pre>
-<pre><code>## [1] &quot;3) PARK ON PRIVATE PROPERTY: 2075 BAYVIEW AVE&quot;
-## [1] &quot;5) PARK-SIGNED HWY-PROHIBIT DY/TM: 20 EDWARD ST&quot;
-## [1] &quot;29) PARK PROHIBITED TIME NO PERMIT: 100 MAITLAND ST&quot;
-## [1] &quot;207) PARK MACHINE-REQD FEE NOT PAID: 15 MARINE PARADE DR&quot;
-## [1] &quot;9) STOP-SIGNED HWY-PROHIBIT TM/DY: 42 CHARLES ST E&quot;
-## [1] &quot;2) PARK - LONGER THAN 3 HOURS: 151 VILLAGE GREEN SQ&quot;
-## [1] &quot;406) PARK-VEH. W/O VALID ONT PLATE: 15 MARINE PARADE DR&quot;
-## [1] &quot;8) STAND VEH.-PROHIBIT TIME/DAY: 19 GRAND TRUNK CRES&quot;
-## [1] &quot;403) STOP-SIGNED HIGHWAY-RUSH HOUR: 33 COLLEGE ST&quot;
-## [1] &quot;6) PARK-SIGNED HWY-EXC PERMT TIME: 2 SUSSEX AVE&quot;
-## [1] &quot;210) PARK FAIL TO DISPLAY RECEIPT: 15 MARINE PARADE DR&quot;
-## [1] &quot;15) PARK-WITHIN 3M OF FIRE HYDRANT: 99 ATLANTIC AVE&quot;
-## [1] &quot;28) PARK-N.YORK 2AM-6AM DEC1-MAR31: 100 HARRISON GARDEN BLVD&quot;
-## [1] &quot;2) PARK - LONGER THAN 3 HOURS : 151 VILLAGE GREEN SQ&quot;
-## [1] &quot;192) STAND SIGNED TRANSIT STOP: 720 QUEEN ST W&quot;
-## [1] &quot;4) PARK ON MUNICIPAL PROPERTY: 18 HENDON AVE&quot;
-## [1] &quot;312) PARKING MACH-NOT USED/NO FEE: 1155 KING ST W&quot;
-## [1] &quot;415) PARK COMMERC LOAD ZONE NOT LDG: 24 BELLAIR ST&quot;
-## [1] &quot;30) STOP-(ON/OVER) (SIDEWK/FTPATH): 185 FREDERICK ST&quot;
-## [1] &quot;347) PARK IN A FIRE ROUTE: 1090 DON MILLS RD&quot;</code></pre>
+<pre><code>## 3) PARK ON PRIVATE PROPERTY: 2075 BAYVIEW AVE
+## 
+## 5) PARK-SIGNED HWY-PROHIBIT DY/TM: 20 EDWARD ST
+## 
+## 29) PARK PROHIBITED TIME NO PERMIT: 100 MAITLAND ST
+## 
+## 207) PARK MACHINE-REQD FEE NOT PAID: 15 MARINE PARADE DR
+## 
+## 9) STOP-SIGNED HWY-PROHIBIT TM/DY: 42 CHARLES ST E
+## 
+## 2) PARK - LONGER THAN 3 HOURS: 151 VILLAGE GREEN SQ
+## 
+## 406) PARK-VEH. W/O VALID ONT PLATE: 15 MARINE PARADE DR
+## 
+## 8) STAND VEH.-PROHIBIT TIME/DAY: 19 GRAND TRUNK CRES
+## 
+## 403) STOP-SIGNED HIGHWAY-RUSH HOUR: 33 COLLEGE ST
+## 
+## 6) PARK-SIGNED HWY-EXC PERMT TIME: 2 SUSSEX AVE
+## 
+## 210) PARK FAIL TO DISPLAY RECEIPT: 15 MARINE PARADE DR
+## 
+## 15) PARK-WITHIN 3M OF FIRE HYDRANT: 99 ATLANTIC AVE
+## 
+## 28) PARK-N.YORK 2AM-6AM DEC1-MAR31: 100 HARRISON GARDEN BLVD
+## 
+## 2) PARK - LONGER THAN 3 HOURS : 151 VILLAGE GREEN SQ
+## 
+## 192) STAND SIGNED TRANSIT STOP: 720 QUEEN ST W
+## 
+## 4) PARK ON MUNICIPAL PROPERTY: 18 HENDON AVE
+## 
+## 312) PARKING MACH-NOT USED/NO FEE: 1155 KING ST W
+## 
+## 415) PARK COMMERC LOAD ZONE NOT LDG: 24 BELLAIR ST
+## 
+## 30) STOP-(ON/OVER) (SIDEWK/FTPATH): 185 FREDERICK ST
+## 
+## 347) PARK IN A FIRE ROUTE: 1090 DON MILLS RD</code></pre>
 <p><br><br><br></p>
 </div>
 <div id="are-there-alternative-parking-options-available-near-the-common-infraction-locations" class="section level1">
@@ -4576,14 +4632,14 @@ infraction locations?</h1>
 <p>I will load in the most recent green P data from 2019. The main
 columns are lng and lat, which will be used to add the marker in the
 map.</p>
-<pre class="r"><code>green_p_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/green-p-parking/&quot;)
-green_p_2019 &lt;- (green_p_res[1, ] %&gt;% get_resource())[[1]]</code></pre>
+<pre class="r"><code>green_p_2019_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/green-p-parking/&quot;)
+green_p_2019 &lt;- (green_p_2019_res[1, ] %&gt;% get_resource())[[1]]</code></pre>
 <p>I will retrieve the longitudinal and latitudinal coordinates of each
-infraction location using the one address repository.</p>
-<pre class="r"><code>geocoder_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/address-points-municipal-toronto-one-address-repository/&quot;)
-geocoder_shape &lt;- (geocoder_res[3, ] %&gt;% get_resource())</code></pre>
+infraction location by geocoding using the one address repository.</p>
+<pre class="r"><code>geocoder_shape_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/address-points-municipal-toronto-one-address-repository/&quot;)
+geocoder_shape &lt;- (geocoder_shape_res[3, ] %&gt;% get_resource())</code></pre>
 <pre><code>## Reading layer `ADDRESS_POINT_WGS84&#39; from data source 
-##   `C:\Users\Master\AppData\Local\Temp\RtmpWQvloQ\ADDRESS_POINT_WGS84.shp&#39; 
+##   `C:\Users\Master\AppData\Local\Temp\RtmpcTH9pa\ADDRESS_POINT_WGS84.shp&#39; 
 ##   using driver `ESRI Shapefile&#39;
 ## Simple feature collection with 525470 features and 22 fields
 ## Geometry type: POINT
@@ -4674,13 +4730,15 @@ map_closest_green_p &lt;- function(lng_value, lat_value, infraction){
                      fillOpacity = 1, stroke = FALSE) %&gt;% 
     addPopups(lng = green_p_lng, lat = green_p_lat, popup = green_p_identifier)
   
-  print(paste0(green_p_identifier, 
-               &quot; exists close to the common infraction location: &quot;, 
-               infraction))
-  print(&quot;&quot;)
+  writeLines(paste(green_p_identifier, 
+                   &quot;exists close to the common infraction location:&quot;, 
+                   infraction, &quot;\n&quot;))
   
   return (infraction_map)
 }</code></pre>
+<p>Using the map_closest_green_p function, I will locate and print the
+closest green P lot to each of the 20 common infraction locations, while
+generating a map for each.</p>
 <pre class="r"><code>infraction_maps &lt;- vector(&quot;list&quot;, 20)
 
 # Generate a leaflet object for each of the top 20 infraction locations.
@@ -4694,53 +4752,51 @@ for (i in 1:nrow(top_infractions)){
   top_infractions$lng[i] &lt;- lng_value
   top_infractions$lat[i] &lt;- lat_value
   
-  infraction &lt;- paste0(top_infractions$Type[i], &quot; AT &quot;, 
-                       top_infractions$Address[i])
+  infraction &lt;- paste0(top_infractions$Address[i])
   infraction_maps[[i]] &lt;- map_closest_green_p(lng_value, lat_value, infraction)
 }</code></pre>
-<pre><code>## [1] &quot;GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE exists close to the common infraction location: 3) PARK ON PRIVATE PROPERTY AT 2075 BAYVIEW AVE&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #34 AT 20 DUNDAS SQUARE exists close to the common infraction location: 5) PARK-SIGNED HWY-PROHIBIT DY/TM AT 20 EDWARD ST&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST exists close to the common infraction location: 29) PARK PROHIBITED TIME NO PERMIT AT 100 MAITLAND ST&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 207) PARK MACHINE-REQD FEE NOT PAID AT 15 MARINE PARADE DR&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #1 AT 20 CHARLES STREET EAST exists close to the common infraction location: 9) STOP-SIGNED HWY-PROHIBIT TM/DY AT 42 CHARLES ST E&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019 exists close to the common infraction location: 2) PARK - LONGER THAN 3 HOURS AT 151 VILLAGE GREEN SQ&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 406) PARK-VEH. W/O VALID ONT PLATE AT 15 MARINE PARADE DR&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #52 AT 40 YORK STREET exists close to the common infraction location: 8) STAND VEH.-PROHIBIT TIME/DAY AT 19 GRAND TRUNK CRES&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST exists close to the common infraction location: 403) STOP-SIGNED HIGHWAY-RUSH HOUR AT 33 COLLEGE ST&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #205 AT 465 HURON STREET exists close to the common infraction location: 6) PARK-SIGNED HWY-EXC PERMT TIME AT 2 SUSSEX AVE&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 210) PARK FAIL TO DISPLAY RECEIPT AT 15 MARINE PARADE DR&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #224 AT 34 HANNA AVENUE exists close to the common infraction location: 15) PARK-WITHIN 3M OF FIRE HYDRANT AT 99 ATLANTIC AVE&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #413 AT 4576 YONGE STREET exists close to the common infraction location: 28) PARK-N.YORK 2AM-6AM DEC1-MAR31 AT 100 HARRISON GARDEN BLVD&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019 exists close to the common infraction location: 2) PARK - LONGER THAN 3 HOURS  AT 151 VILLAGE GREEN SQ&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #53 AT 803 RICHMOND STREET WEST exists close to the common infraction location: 192) STAND SIGNED TRANSIT STOP AT 720 QUEEN ST W&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #813 AT FINCH WEST LOT - 18 HENDON AVE exists close to the common infraction location: 4) PARK ON MUNICIPAL PROPERTY AT 18 HENDON AVE&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #181 AT 1155 KING STREET WEST exists close to the common infraction location: 312) PARKING MACH-NOT USED/NO FEE AT 1155 KING ST W&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #215 AT 74 YORKVILLE AVENUE exists close to the common infraction location: 415) PARK COMMERC LOAD ZONE NOT LDG AT 24 BELLAIR ST&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #125 AT 323 RICHMOND STREET EAST exists close to the common infraction location: 30) STOP-(ON/OVER) (SIDEWK/FTPATH) AT 185 FREDERICK ST&quot;
-## [1] &quot;&quot;
-## [1] &quot;GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE exists close to the common infraction location: 347) PARK IN A FIRE ROUTE AT 1090 DON MILLS RD&quot;
-## [1] &quot;&quot;</code></pre>
+<pre><code>## GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE exists close to the common infraction location: 2075 BAYVIEW AVE 
+## 
+## GREEN P LOT ID #34 AT 20 DUNDAS SQUARE exists close to the common infraction location: 20 EDWARD ST 
+## 
+## GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST exists close to the common infraction location: 100 MAITLAND ST 
+## 
+## GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 15 MARINE PARADE DR 
+## 
+## GREEN P LOT ID #1 AT 20 CHARLES STREET EAST exists close to the common infraction location: 42 CHARLES ST E 
+## 
+## GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019 exists close to the common infraction location: 151 VILLAGE GREEN SQ 
+## 
+## GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 15 MARINE PARADE DR 
+## 
+## GREEN P LOT ID #52 AT 40 YORK STREET exists close to the common infraction location: 19 GRAND TRUNK CRES 
+## 
+## GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST exists close to the common infraction location: 33 COLLEGE ST 
+## 
+## GREEN P LOT ID #205 AT 465 HURON STREET exists close to the common infraction location: 2 SUSSEX AVE 
+## 
+## GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE exists close to the common infraction location: 15 MARINE PARADE DR 
+## 
+## GREEN P LOT ID #224 AT 34 HANNA AVENUE exists close to the common infraction location: 99 ATLANTIC AVE 
+## 
+## GREEN P LOT ID #413 AT 4576 YONGE STREET exists close to the common infraction location: 100 HARRISON GARDEN BLVD 
+## 
+## GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019 exists close to the common infraction location: 151 VILLAGE GREEN SQ 
+## 
+## GREEN P LOT ID #53 AT 803 RICHMOND STREET WEST exists close to the common infraction location: 720 QUEEN ST W 
+## 
+## GREEN P LOT ID #813 AT FINCH WEST LOT - 18 HENDON AVE exists close to the common infraction location: 18 HENDON AVE 
+## 
+## GREEN P LOT ID #181 AT 1155 KING STREET WEST exists close to the common infraction location: 1155 KING ST W 
+## 
+## GREEN P LOT ID #215 AT 74 YORKVILLE AVENUE exists close to the common infraction location: 24 BELLAIR ST 
+## 
+## GREEN P LOT ID #125 AT 323 RICHMOND STREET EAST exists close to the common infraction location: 185 FREDERICK ST 
+## 
+## GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE exists close to the common infraction location: 1090 DON MILLS RD</code></pre>
 <p>With 20 maps generated for each infraction location, I will now
-create a full map containing all 20 infraction locations and the closest
-green P lots to each one (20 in total).</p>
+summarize the data by creating a full map containing all 20 infraction
+locations and the closest green P lots to each one (20 in total).</p>
 <pre class="r"><code>full_infraction_map &lt;- leaflet::leaflet() %&gt;%
     addTiles()
 
@@ -4790,25 +4846,25 @@ for (i in 1:nrow(top_infractions)){
                      fillOpacity = 1, stroke = FALSE, radius = 5)
 }</code></pre>
 <p>Clicking on a circle will display more information about that
-particular infraction location (if red) or green P parking lot (if
-green). The popup will specify the address.</p>
+particular infraction location (if red) or green P lot (if green). The
+popup will specify the address.</p>
 <pre class="r"><code>full_infraction_map</code></pre>
-<div id="htmlwidget-00f45101a461902154cf" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-00f45101a461902154cf">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.721937648,-79.377875373,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"3) PARK ON PRIVATE PROPERTY AT 2075 BAYVIEW AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.657104846,-79.38248559,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"5) PARK-SIGNED HWY-PROHIBIT DY/TM AT 20 EDWARD ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.656004,-79.379933,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #34 AT 20 DUNDAS SQUARE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6650800354,-79.3796817748,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"29) PARK PROHIBITED TIME NO PERMIT AT 100 MAITLAND ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.664837,-79.383591,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"207) PARK MACHINE-REQD FEE NOT PAID AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.669354502,-79.384182448,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"9) STOP-SIGNED HWY-PROHIBIT TM/DY AT 42 CHARLES ST E",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6692822021402,-79.3852894625656,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #1 AT 20 CHARLES STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"406) PARK-VEH. W/O VALID ONT PLATE AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.641657892,-79.382650646,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"8) STAND VEH.-PROHIBIT TIME/DAY AT 19 GRAND TRUNK CRES",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6455358,-79.3827237,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #52 AT 40 YORK STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.660719122,-79.385162176,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"403) STOP-SIGNED HIGHWAY-RUSH HOUR AT 33 COLLEGE ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.664837,-79.383591,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6655699357,-79.3996051522,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"6) PARK-SIGNED HWY-EXC PERMT TIME AT 2 SUSSEX AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.667778,-79.401648,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #205 AT 465 HURON STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"210) PARK FAIL TO DISPLAY RECEIPT AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6388651575,-79.4204969357,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"15) PARK-WITHIN 3M OF FIRE HYDRANT AT 99 ATLANTIC AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.638242,-79.419812,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #224 AT 34 HANNA AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.756981542,-79.404400088,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"28) PARK-N.YORK 2AM-6AM DEC1-MAR31 AT 100 HARRISON GARDEN BLVD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.756023,-79.410403,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #413 AT 4576 YONGE STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS  AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6464111215,-79.4092125835,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"192) STAND SIGNED TRANSIT STOP AT 720 QUEEN ST W",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.644546,-79.410778,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #53 AT 803 RICHMOND STREET WEST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.781541823,-79.417254743,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"4) PARK ON MUNICIPAL PROPERTY AT 18 HENDON AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.782032,-79.416368,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #813 AT FINCH WEST LOT - 18 HENDON AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.639016257,-79.423233274,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"312) PARKING MACH-NOT USED/NO FEE AT 1155 KING ST W",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.637863,-79.424011,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #181 AT 1155 KING STREET WEST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6706459513,-79.3913064646,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"415) PARK COMMERC LOAD ZONE NOT LDG AT 24 BELLAIR ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.670936,-79.392222,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #215 AT 74 YORKVILLE AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6514011196,-79.3693656957,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"30) STOP-(ON/OVER) (SIDEWK/FTPATH) AT 185 FREDERICK ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.653381,-79.368582,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #125 AT 323 RICHMOND STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.7364155632,-79.3441474123,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"347) PARK IN A FIRE ROUTE AT 1090 DON MILLS RD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[43.6267898,43.782032],"lng":[-79.4767453,-79.276394]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-b925c70a485b2c587d9b" style="width:672px;height:480px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-b925c70a485b2c587d9b">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.721937648,-79.377875373,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"3) PARK ON PRIVATE PROPERTY AT 2075 BAYVIEW AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.657104846,-79.38248559,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"5) PARK-SIGNED HWY-PROHIBIT DY/TM AT 20 EDWARD ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.656004,-79.379933,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #34 AT 20 DUNDAS SQUARE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6650800354,-79.3796817748,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"29) PARK PROHIBITED TIME NO PERMIT AT 100 MAITLAND ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.664837,-79.383591,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"207) PARK MACHINE-REQD FEE NOT PAID AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.669354502,-79.384182448,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"9) STOP-SIGNED HWY-PROHIBIT TM/DY AT 42 CHARLES ST E",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6692822021402,-79.3852894625656,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #1 AT 20 CHARLES STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"406) PARK-VEH. W/O VALID ONT PLATE AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.641657892,-79.382650646,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"8) STAND VEH.-PROHIBIT TIME/DAY AT 19 GRAND TRUNK CRES",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6455358,-79.3827237,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #52 AT 40 YORK STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.660719122,-79.385162176,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"403) STOP-SIGNED HIGHWAY-RUSH HOUR AT 33 COLLEGE ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.664837,-79.383591,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #5 AT 15 WELLESLEY STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6655699357,-79.3996051522,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"6) PARK-SIGNED HWY-EXC PERMT TIME AT 2 SUSSEX AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.667778,-79.401648,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #205 AT 465 HURON STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.628986152,-79.475496342,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"210) PARK FAIL TO DISPLAY RECEIPT AT 15 MARINE PARADE DR",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6267898,-79.4767453,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #534 AT 15 MARINE PARADE DRIVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6388651575,-79.4204969357,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"15) PARK-WITHIN 3M OF FIRE HYDRANT AT 99 ATLANTIC AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.638242,-79.419812,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #224 AT 34 HANNA AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.756981542,-79.404400088,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"28) PARK-N.YORK 2AM-6AM DEC1-MAR31 AT 100 HARRISON GARDEN BLVD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.756023,-79.410403,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #413 AT 4576 YONGE STREET",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS  AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6464111215,-79.4092125835,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"192) STAND SIGNED TRANSIT STOP AT 720 QUEEN ST W",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.644546,-79.410778,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #53 AT 803 RICHMOND STREET WEST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.781541823,-79.417254743,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"4) PARK ON MUNICIPAL PROPERTY AT 18 HENDON AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.782032,-79.416368,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #813 AT FINCH WEST LOT - 18 HENDON AVE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.639016257,-79.423233274,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"312) PARKING MACH-NOT USED/NO FEE AT 1155 KING ST W",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.637863,-79.424011,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #181 AT 1155 KING STREET WEST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6706459513,-79.3913064646,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"415) PARK COMMERC LOAD ZONE NOT LDG AT 24 BELLAIR ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.670936,-79.392222,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #215 AT 74 YORKVILLE AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.6514011196,-79.3693656957,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"30) STOP-(ON/OVER) (SIDEWK/FTPATH) AT 185 FREDERICK ST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.653381,-79.368582,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #125 AT 323 RICHMOND STREET EAST",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.7364155632,-79.3441474123,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"347) PARK IN A FIRE ROUTE AT 1090 DON MILLS RD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,5,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[43.6267898,43.782032],"lng":[-79.4767453,-79.276394]}},"evals":[],"jsHooks":[]}</script>
 <p>After observing the full map, the conclusion is that there are nearby
 green P lots with nearly all common infraction locations. The exceptions
 seem to be 151 VILLAGE GREEN SQ (6th and 14th highest) and 1090 DON
 MILLS RD (20th highest), which we will verify with the standalone
 infraction maps below.</p>
 <pre class="r"><code>infraction_maps[[6]]</code></pre>
-<div id="htmlwidget-f3f249a605ad4cf784ab" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-f3f249a605ad4cf784ab">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.778580615,-79.281171756,"2) PARK - LONGER THAN 3 HOURS AT 151 VILLAGE GREEN SQ",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.766793,-79.276394,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.766793,43.778580615],"lng":[-79.281171756,-79.276394]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-e2f473b3588555c95402" style="width:672px;height:480px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-e2f473b3588555c95402">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.778580615,-79.281171756,"151 VILLAGE GREEN SQ",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.766793,-79.276394,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.766793,43.778580615],"lng":[-79.281171756,-79.276394]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code>infraction_maps[[14]]</code></pre>
-<div id="htmlwidget-38bff6c8fcdb5492d740" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-38bff6c8fcdb5492d740">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"2) PARK - LONGER THAN 3 HOURS  AT 151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.778580615,-79.281171756,"2) PARK - LONGER THAN 3 HOURS  AT 151 VILLAGE GREEN SQ",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.766793,-79.276394,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.766793,43.778580615],"lng":[-79.281171756,-79.276394]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-fb401e0f07051e758ac3" style="width:672px;height:480px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-fb401e0f07051e758ac3">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.778580615,-79.281171756,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"151 VILLAGE GREEN SQ",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.778580615,-79.281171756,"151 VILLAGE GREEN SQ",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.766793,-79.276394,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.766793,-79.276394,"GREEN P LOT ID #817 AT ELLESMERE LOT - NEAR 1050 ELLESMERE ROAD - CLOSED FOR CONSTRUCTION UNTIL NOVEMBER 2019",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.766793,43.778580615],"lng":[-79.281171756,-79.276394]}},"evals":[],"jsHooks":[]}</script>
 <pre class="r"><code>infraction_maps[[20]]</code></pre>
-<div id="htmlwidget-055202e7554c8c8d4cfb" style="width:672px;height:480px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-055202e7554c8c8d4cfb">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.7364155632,-79.3441474123,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"347) PARK IN A FIRE ROUTE AT 1090 DON MILLS RD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.7364155632,-79.3441474123,"347) PARK IN A FIRE ROUTE AT 1090 DON MILLS RD",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.723875,-79.379571,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.723875,43.7364155632],"lng":[-79.379571,-79.3441474123]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-328efee932a22f5e885e" style="width:672px;height:480px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-328efee932a22f5e885e">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[43.7364155632,-79.3441474123,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"red","fillOpacity":1},null,null,"1090 DON MILLS RD",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.7364155632,-79.3441474123,"1090 DON MILLS RD",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]},{"method":"addCircleMarkers","args":[43.723875,-79.379571,10,null,null,{"interactive":true,"className":"","stroke":false,"color":"#03F","weight":5,"opacity":0.5,"fill":true,"fillColor":"green","fillOpacity":1},null,null,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addPopups","args":[43.723875,-79.379571,"GREEN P LOT ID #424 AT 2170 BAYVIEW AVENUE",null,null,{"maxWidth":300,"minWidth":50,"autoPan":true,"keepInView":false,"closeButton":true,"className":""}]}],"limits":{"lat":[43.723875,43.7364155632],"lng":[-79.379571,-79.3441474123]}},"evals":[],"jsHooks":[]}</script>
 <p><br><br><br></p>
 </div>
 <div id="are-there-any-socio-demographic-trends-of-note-in-the-areas-with-more-infractions" class="section level1">
@@ -4816,10 +4872,10 @@ infraction maps below.</p>
 more infractions?</h1>
 <p>To start, I will load in the neighbourhoods historical 140
 Shapefile.</p>
-<pre class="r"><code>hood_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/neighbourhoods/&quot;)
-hood_140 &lt;- (hood_res[5, ] %&gt;% get_resource())</code></pre>
+<pre class="r"><code>hood_140_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/neighbourhoods/&quot;)
+hood_140 &lt;- (hood_140_res[5, ] %&gt;% get_resource())</code></pre>
 <pre><code>## Reading layer `Neighbourhoods - historical 140&#39; from data source 
-##   `C:\Users\Master\AppData\Local\Temp\RtmpWQvloQ\Neighbourhoods - historical 140.shp&#39; 
+##   `C:\Users\Master\AppData\Local\Temp\RtmpcTH9pa\Neighbourhoods - historical 140.shp&#39; 
 ##   using driver `ESRI Shapefile&#39;
 ## Simple feature collection with 140 features and 11 fields
 ## Geometry type: POLYGON
@@ -4836,7 +4892,7 @@ neighbourhood name of the infraction location.</p>
 #&#39; and latitudinal coordinates of an infraction location.
 #&#39; @author Jedid Ahn
 #&#39; 
-#&#39; @param lng_value Longitudine.
+#&#39; @param lng_value Longitude.
 #&#39; @param lat_value Latitude.
 #&#39; 
 #&#39; @return neighbourhood_name Name of the neighbourhood.
@@ -4863,15 +4919,15 @@ get_neighbourhood_of_infraction &lt;- function(lng_value, lat_value){
   
   return (neighbourhood_name)
 }</code></pre>
-<p>Now that I identified the neighbourhood of each of the 20 infraction
-locations, I will load in the neighbourhood profiles data. Columns 7 to
-146 represent the neighbourhoods of the City of Toronto.</p>
+<p>Now that I am able to identify the neighbourhood of each of the 20
+infraction locations, I will load in the neighbourhood profiles data.
+Columns 7 to 146 represent the neighbourhoods of the City of
+Toronto.</p>
 <pre class="r"><code>hood_profile_res &lt;- list_package_resources(&quot;https://open.toronto.ca/dataset/neighbourhood-profiles/&quot;)
 hood_profile &lt;- (hood_profile_res[1, ] %&gt;% get_resource())</code></pre>
 <p>I will perform a simple outlier test using percentiles to determine
 any sociodemographic characteristics of a particular neighbourhood. The
-thresholds are set to 0.5% and 99.5% for the purpose of this
-analysis.</p>
+thresholds are set to 0.5% and 99.5%.</p>
 <pre class="r"><code>#&#39; @title find_sociodemo_outliers
 #&#39;
 #&#39; @description Find sociodemographic outliers with the neighbourhood
@@ -4882,7 +4938,7 @@ analysis.</p>
 #&#39; City of Toronto.
 #&#39; @param neighbourhood Specific neighbourhood of interest.
 #&#39; 
-#&#39; @return characteristics List of vectors containing lower bound 
+#&#39; @return characteristics List of 2 vectors containing lower bound 
 #&#39; characteristics and upper bound characteristics.
 #&#39; 
 find_sociodemo_outliers &lt;- function(hood_profile, neighbourhood){
@@ -4913,14 +4969,22 @@ find_sociodemo_outliers &lt;- function(hood_profile, neighbourhood){
     }
   }
   
+  
+  if (is.null(lower_characteristics)){
+    lower_characteristics &lt;- &quot;None&quot;
+  }
+  if (is.null(upper_characteristics)){
+    upper_characteristics &lt;- &quot;None&quot;
+  }
+  
   characteristics &lt;- list(lower_characteristics, upper_characteristics)
   return (characteristics)
 }</code></pre>
 <p>This function will print the outlying sociodemographic
-characteristics for a particular neighbourhood. Moving forward with the
-analysis, only the neighbourhoods corresponding to the top 6 infraction
-locations will be examined. The rest can be examined independently by
-simply calling this function.</p>
+characteristics for a particular neighbourhood. For simplicity, only the
+neighbourhoods corresponding to the top 6 infraction locations will be
+examined. The rest can be examined independently by simply calling this
+function.</p>
 <pre class="r"><code>#&#39; @title print_sociodemo_characteristics
 #&#39;
 #&#39; @description Print sociodemographic characteristics that are deemed 
@@ -4940,8 +5004,8 @@ print_sociodemo_characteristics &lt;- function(top_infractions, index,
   # location resides in.
   neighbourhood &lt;- get_neighbourhood_of_infraction(top_infractions$lng[index],
                                                    top_infractions$lat[index])
-  print(neighbourhood)
-  print(&quot;&quot;)
+  writeLines(neighbourhood)
+  writeLines(&quot;_______________________________\n&quot;)
     
   # Then identify sociodemographic outliers.
   characteristics &lt;- suppressWarnings(find_sociodemo_outliers(hood_profile, 
@@ -4949,216 +5013,247 @@ print_sociodemo_characteristics &lt;- function(top_infractions, index,
     
   # characteristics[[1]] are lower extreme characteristics.
   # characteristics[[2]] are higher extreme characteristics.
-  print(&quot;LOWER EXTREME CHARACTERISTICS&quot;)
-  print(characteristics[[1]])
-  print(&quot;____________________&quot;)
-  print(&quot;HIGHER EXTREME CHARACTERISTICS&quot;)
-  print(characteristics[[2]])
+  writeLines(&quot;LOWER EXTREME CHARACTERISTICS\n&quot;)
+  writeLines(characteristics[[1]])
+  writeLines(&quot;\n_______________________________\n&quot;)
+  writeLines(&quot;HIGHER EXTREME CHARACTERISTICS\n&quot;)
+  writeLines(characteristics[[2]])
 }</code></pre>
 <p>The sociodemographic trend for Bridle Path-Sunnybrook-York Mills is
 the affluency of the neighbourhood. However, this is irrelevant as most
 infractions would come from people who live outside of the neighbourhood
 due to the hospital, which serves all of northern Toronto.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 1, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Bridle Path-Sunnybrook-York Mills&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-##  [1] &quot;Population and dwellings: Population density per square kilometre&quot;                                                                                   
-##  [2] &quot;Age characteristics: Male: 30 to 34 years&quot;                                                                                                           
-##  [3] &quot;Age characteristics: Male: 35 to 39 years&quot;                                                                                                           
-##  [4] &quot;Age characteristics: Female: 35 to 39 years&quot;                                                                                                         
-##  [5] &quot;Marital status:     Living common law&quot;                                                                                                               
-##  [6] &quot;Family characteristics:     Common-law couples&quot;                                                                                                      
-##  [7] &quot;Family characteristics:   1 child&quot;                                                                                                                   
-##  [8] &quot;Household type:     Two-or-more person non-census-family households&quot;                                                                                 
-##  [9] &quot;Language spoken most often at home:         Austronesian languages&quot;                                                                                  
-## [10] &quot;Language spoken most often at home:           Tagalog (Pilipino, Filipino)&quot;                                                                          
-## [11] &quot;Income of individuals in 2015:     $30,000 to $39,999&quot;                                                                                               
-## [12] &quot;Income of individuals in 2015:     $40,000 to $49,999&quot;                                                                                               
-## [13] &quot;Income of individuals in 2015:     $20,000 to $29,999&quot;                                                                                               
-## [14] &quot;Income of individuals in 2015:     $10,000 to $19,999&quot;                                                                                               
-## [15] &quot;Income of individuals in 2015:     $20,000 to $29,999&quot;                                                                                               
-## [16] &quot;Income of individuals in 2015:     $30,000 to $39,999&quot;                                                                                               
-## [17] &quot;Income of individuals in 2015:     $40,000 to $49,999&quot;                                                                                               
-## [18] &quot;Income of individuals in 2015:     $40,000 to $49,999&quot;                                                                                               
-## [19] &quot;Income of individuals in 2015:     $50,000 to $59,999&quot;                                                                                               
-## [20] &quot;Income of households in 2015:   $15,000 to $19,999&quot;                                                                                                  
-## [21] &quot;Income of households in 2015:   $20,000 to $24,999&quot;                                                                                                  
-## [22] &quot;Income of households in 2015:   $25,000 to $29,999&quot;                                                                                                  
-## [23] &quot;Income of households in 2015:   $30,000 to $34,999&quot;                                                                                                  
-## [24] &quot;Income of households in 2015:   $35,000 to $39,999&quot;                                                                                                  
-## [25] &quot;Income of households in 2015:   $40,000 to $44,999&quot;                                                                                                  
-## [26] &quot;Income of households in 2015:   $45,000 to $49,999&quot;                                                                                                  
-## [27] &quot;Income of households in 2015:   $50,000 to $59,999&quot;                                                                                                  
-## [28] &quot;Income of households in 2015:   $60,000 to $69,999&quot;                                                                                                  
-## [29] &quot;Income of households in 2015:   $70,000 to $79,999&quot;                                                                                                  
-## [30] &quot;Income of households in 2015:   $80,000 to $89,999&quot;                                                                                                  
-## [31] &quot;Income of households in 2015:   $20,000 to $24,999&quot;                                                                                                  
-## [32] &quot;Income of households in 2015:   $25,000 to $29,999&quot;                                                                                                  
-## [33] &quot;Income of households in 2015:   $30,000 to $34,999&quot;                                                                                                  
-## [34] &quot;Income of households in 2015:   $35,000 to $39,999&quot;                                                                                                  
-## [35] &quot;Income of households in 2015:   $40,000 to $44,999&quot;                                                                                                  
-## [36] &quot;Income of households in 2015:   $45,000 to $49,999&quot;                                                                                                  
-## [37] &quot;Income of households in 2015:   $50,000 to $59,999&quot;                                                                                                  
-## [38] &quot;Income of households in 2015:   $60,000 to $69,999&quot;                                                                                                  
-## [39] &quot;Income of households in 2015:   $80,000 to $89,999&quot;                                                                                                  
-## [40] &quot;Income of economic families in 2015:     In the fourth decile&quot;                                                                                       
-## [41] &quot;Income of economic families in 2015:     In the fifth decile&quot;                                                                                        
-## [42] &quot;Income of economic families in 2015:     In the sixth decile&quot;                                                                                        
-## [43] &quot;Income of economic families in 2015:     In the seventh decile&quot;                                                                                      
-## [44] &quot;Immigrants by selected place of birth:     Other places of birth in Americas&quot;                                                                        
-## [45] &quot;Immigrants by selected place of birth:     Philippines&quot;                                                                                              
-## [46] &quot;Admission category and applicant type:   Refugees&quot;                                                                                                   
-## [47] &quot;Visible minority population:     Filipino&quot;                                                                                                           
-## [48] &quot;Ethnic origin population:  Trinidadian/Tobagonian&quot;                                                                                                   
-## [49] &quot;Household characteristics:   Not condominium&quot;                                                                                                        
-## [50] &quot;Household characteristics:   Major repairs needed&quot;                                                                                                   
-## [51] &quot;Household characteristics:     30% to less than 100%&quot;                                                                                                
-## [52] &quot;Core housing need: Number of households in core housing need&quot;                                                                                        
-## [53] &quot;Highest certificate, diploma or degree:     Apprenticeship or trades certificate or diploma&quot;                                                         
-## [54] &quot;Core housing need: Core housing need, Unaffordable only&quot;                                                                                             
-## [55] &quot;Core housing need: Unaffordable housing in core need&quot;                                                                                                
-## [56] &quot;Core housing need: Inadequate housing not in core need&quot;                                                                                              
-## [57] &quot;Highest certificate, diploma or degree:       Trades certificate or diploma other than Certificate of Apprenticeship or Certificate of Qualification&quot;
-## [58] &quot;Highest certificate, diploma or degree:       Certificate of Apprenticeship or Certificate of Qualification&quot;                                         
-## [59] &quot;Highest certificate, diploma or degree:     College, CEGEP or other non-university certificate or diploma&quot;                                           
-## [60] &quot;Highest certificate, diploma or degree:     Apprenticeship or trades certificate or diploma&quot;                                                         
-## [61] &quot;Highest certificate, diploma or degree:       Certificate of Apprenticeship or Certificate of Qualification&quot;                                         
-## [62] &quot;Highest certificate, diploma or degree:     College, CEGEP or other non-university certificate or diploma&quot;                                           
-## [63] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     10. Communications technologies/technicians and support services&quot;    
-## [64] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     19. Family and consumer sciences/human sciences&quot;                     
-## [65] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:   Personal, protective and transportation services&quot;                      
-## [66] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     12. Personal and culinary services&quot;                                  
-## [67] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:   Personal, protective and transportation services&quot;                      
-## [68] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     19. Family and consumer sciences/human sciences&quot;                     
-## [69] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     46. Construction trades&quot;                                             
-## [70] &quot;Occupation - National Occupational Classification (NOC) 2016:     6 Sales and service occupations&quot;                                                   
-## [71] &quot;Occupation - National Occupational Classification (NOC) 2016:     7 Trades, transport and equipment operators and related occupations&quot;               
-## [72] &quot;Occupation - National Occupational Classification (NOC) 2016:     9 Occupations in manufacturing and utilities&quot;                                      
-## [73] &quot;Industry - North American Industry Classification System (NAICS) 2012:     44-45 Retail trade&quot;                                                       
-## [74] &quot;Industry - North American Industry Classification System (NAICS) 2012:     48-49 Transportation and warehousing&quot;                                     
-## [75] &quot;Industry - North American Industry Classification System (NAICS) 2012:     56 Administrative and support, waste management and remediation services&quot; 
-## [76] &quot;Industry - North American Industry Classification System (NAICS) 2012:     72 Accommodation and food services&quot;                                       
-## [77] &quot;Industry - North American Industry Classification System (NAICS) 2012:     81 Other services (except public administration)&quot;                         
-## [78] &quot;Place of work status:   No fixed workplace address&quot;                                                                                                  
-## [79] &quot;Main mode of commuting:   Public transit&quot;                                                                                                            
-## [80] &quot;Commuting duration:   60 minutes and over&quot;                                                                                                           
-## [81] &quot;Time leaving for work:   Between 5 a.m. and 5:59 a.m.&quot;                                                                                               
-## [82] &quot;Time leaving for work:   Between 12 p.m. and 4:59 a.m.&quot;                                                                                              
-## [83] &quot;Income sources:       EI - Other benefits: Population with an amount&quot;                                                                                
-## [84] &quot;Income sources:     Old Age Security pension (OAS) and Guaranteed Income Supplement (GIS): Aggregate amount ($&#39;000)&quot;                                 
-## [85] &quot;Income sources:       Guaranteed Income Supplement (GIS) and spousal allowance: Population with an amount&quot;                                           
-## [86] &quot;Income sources:     Employment Insurance (EI) benefits: Population with an amount&quot;                                                                   
-## [87] &quot;Income sources:     Employment Insurance (EI) benefits: Aggregate amount ($&#39;000)&quot;                                                                    
-## [88] &quot;Income sources:       EI - Regular benefits: Population with an amount&quot;                                                                              
-## [89] &quot;Income sources:       EI - Regular benefits: Aggregate amount ($&#39;000)&quot;                                                                               
-## [90] &quot;Income sources:     Other government transfers: Average amount ($)&quot;                                                                                  
-## [91] &quot;Income sources:     Other government transfers: Aggregate amount ($&#39;000)&quot;                                                                            
-## [92] &quot;Income sources:       Workers&#39; compensation benefits: Population with an amount&quot;                                                                     
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-##  [1] &quot;Language spoken most often at home:         Sign languages&quot;                   
-##  [2] &quot;Language spoken most often at home:           American Sign Language&quot;         
-##  [3] &quot;Income sources: Total income: Average amount ($)&quot;                             
-##  [4] &quot;Income sources:   Market income: Average amount ($)&quot;                          
-##  [5] &quot;Income sources:     Employment income: Average amount ($)&quot;                    
-##  [6] &quot;Income sources:       Wages, salaries and commissions: Average amount ($)&quot;    
-##  [7] &quot;Income sources:       Net self-employment income: Average amount ($)&quot;         
-##  [8] &quot;Income sources:     Investment income: Average amount ($)&quot;                    
-##  [9] &quot;Income sources:     Private retirement income: Average amount ($)&quot;            
-## [10] &quot;Income sources:   After-tax income: Average amount ($)&quot;                       
-## [11] &quot;Income taxes:   Income taxes: Average amount ($)&quot;                             
-## [12] &quot;Income taxes:     Net federal tax: Average amount ($)&quot;                        
-## [13] &quot;Income taxes:     Provincial and territorial income taxes: Average amount ($)&quot;</code></pre>
+<pre><code>## Bridle Path-Sunnybrook-York Mills
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## Population and dwellings: Population density per square kilometre
+## Age characteristics: Male: 30 to 34 years
+## Age characteristics: Male: 35 to 39 years
+## Age characteristics: Female: 35 to 39 years
+## Marital status:     Living common law
+## Family characteristics:     Common-law couples
+## Family characteristics:   1 child
+## Household type:     Two-or-more person non-census-family households
+## Language spoken most often at home:         Austronesian languages
+## Language spoken most often at home:           Tagalog (Pilipino, Filipino)
+## Income of individuals in 2015:     $30,000 to $39,999
+## Income of individuals in 2015:     $40,000 to $49,999
+## Income of individuals in 2015:     $20,000 to $29,999
+## Income of individuals in 2015:     $10,000 to $19,999
+## Income of individuals in 2015:     $20,000 to $29,999
+## Income of individuals in 2015:     $30,000 to $39,999
+## Income of individuals in 2015:     $40,000 to $49,999
+## Income of individuals in 2015:     $40,000 to $49,999
+## Income of individuals in 2015:     $50,000 to $59,999
+## Income of households in 2015:   $15,000 to $19,999
+## Income of households in 2015:   $20,000 to $24,999
+## Income of households in 2015:   $25,000 to $29,999
+## Income of households in 2015:   $30,000 to $34,999
+## Income of households in 2015:   $35,000 to $39,999
+## Income of households in 2015:   $40,000 to $44,999
+## Income of households in 2015:   $45,000 to $49,999
+## Income of households in 2015:   $50,000 to $59,999
+## Income of households in 2015:   $60,000 to $69,999
+## Income of households in 2015:   $70,000 to $79,999
+## Income of households in 2015:   $80,000 to $89,999
+## Income of households in 2015:   $20,000 to $24,999
+## Income of households in 2015:   $25,000 to $29,999
+## Income of households in 2015:   $30,000 to $34,999
+## Income of households in 2015:   $35,000 to $39,999
+## Income of households in 2015:   $40,000 to $44,999
+## Income of households in 2015:   $45,000 to $49,999
+## Income of households in 2015:   $50,000 to $59,999
+## Income of households in 2015:   $60,000 to $69,999
+## Income of households in 2015:   $80,000 to $89,999
+## Income of economic families in 2015:     In the fourth decile
+## Income of economic families in 2015:     In the fifth decile
+## Income of economic families in 2015:     In the sixth decile
+## Income of economic families in 2015:     In the seventh decile
+## Immigrants by selected place of birth:     Other places of birth in Americas
+## Immigrants by selected place of birth:     Philippines
+## Admission category and applicant type:   Refugees
+## Visible minority population:     Filipino
+## Ethnic origin population:  Trinidadian/Tobagonian
+## Household characteristics:   Not condominium
+## Household characteristics:   Major repairs needed
+## Household characteristics:     30% to less than 100%
+## Core housing need: Number of households in core housing need
+## Highest certificate, diploma or degree:     Apprenticeship or trades certificate or diploma
+## Core housing need: Core housing need, Unaffordable only
+## Core housing need: Unaffordable housing in core need
+## Core housing need: Inadequate housing not in core need
+## Highest certificate, diploma or degree:       Trades certificate or diploma other than Certificate of Apprenticeship or Certificate of Qualification
+## Highest certificate, diploma or degree:       Certificate of Apprenticeship or Certificate of Qualification
+## Highest certificate, diploma or degree:     College, CEGEP or other non-university certificate or diploma
+## Highest certificate, diploma or degree:     Apprenticeship or trades certificate or diploma
+## Highest certificate, diploma or degree:       Certificate of Apprenticeship or Certificate of Qualification
+## Highest certificate, diploma or degree:     College, CEGEP or other non-university certificate or diploma
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     10. Communications technologies/technicians and support services
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     19. Family and consumer sciences/human sciences
+## Major field of study - Classification of Instructional Programs (CIP) 2016:   Personal, protective and transportation services
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     12. Personal and culinary services
+## Major field of study - Classification of Instructional Programs (CIP) 2016:   Personal, protective and transportation services
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     19. Family and consumer sciences/human sciences
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     46. Construction trades
+## Occupation - National Occupational Classification (NOC) 2016:     6 Sales and service occupations
+## Occupation - National Occupational Classification (NOC) 2016:     7 Trades, transport and equipment operators and related occupations
+## Occupation - National Occupational Classification (NOC) 2016:     9 Occupations in manufacturing and utilities
+## Industry - North American Industry Classification System (NAICS) 2012:     44-45 Retail trade
+## Industry - North American Industry Classification System (NAICS) 2012:     48-49 Transportation and warehousing
+## Industry - North American Industry Classification System (NAICS) 2012:     56 Administrative and support, waste management and remediation services
+## Industry - North American Industry Classification System (NAICS) 2012:     72 Accommodation and food services
+## Industry - North American Industry Classification System (NAICS) 2012:     81 Other services (except public administration)
+## Place of work status:   No fixed workplace address
+## Main mode of commuting:   Public transit
+## Commuting duration:   60 minutes and over
+## Time leaving for work:   Between 5 a.m. and 5:59 a.m.
+## Time leaving for work:   Between 12 p.m. and 4:59 a.m.
+## Income sources:       EI - Other benefits: Population with an amount
+## Income sources:     Old Age Security pension (OAS) and Guaranteed Income Supplement (GIS): Aggregate amount ($&#39;000)
+## Income sources:       Guaranteed Income Supplement (GIS) and spousal allowance: Population with an amount
+## Income sources:     Employment Insurance (EI) benefits: Population with an amount
+## Income sources:     Employment Insurance (EI) benefits: Aggregate amount ($&#39;000)
+## Income sources:       EI - Regular benefits: Population with an amount
+## Income sources:       EI - Regular benefits: Aggregate amount ($&#39;000)
+## Income sources:     Other government transfers: Average amount ($)
+## Income sources:     Other government transfers: Aggregate amount ($&#39;000)
+## Income sources:       Workers&#39; compensation benefits: Population with an amount
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## Language spoken most often at home:         Sign languages
+## Language spoken most often at home:           American Sign Language
+## Income sources: Total income: Average amount ($)
+## Income sources:   Market income: Average amount ($)
+## Income sources:     Employment income: Average amount ($)
+## Income sources:       Wages, salaries and commissions: Average amount ($)
+## Income sources:       Net self-employment income: Average amount ($)
+## Income sources:     Investment income: Average amount ($)
+## Income sources:     Private retirement income: Average amount ($)
+## Income sources:   After-tax income: Average amount ($)
+## Income taxes:   Income taxes: Average amount ($)
+## Income taxes:     Net federal tax: Average amount ($)
+## Income taxes:     Provincial and territorial income taxes: Average amount ($)</code></pre>
 <p>The sociodemographic trend for Bay Street Corridor is the higher
-minority population and low income status of many residents. This may
-explain why there are many infractions at 20 EDWARD ST.</p>
+minority population and the number of residents with low disposable
+income. This may explain why there are many infractions at 20 EDWARD
+ST.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 2, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Bay Street Corridor&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-## [1] &quot;Income sources:   Government transfers: Average amount ($)&quot;                                                         
-## [2] &quot;Income sources:       Goods and services tax (GST) credit and harmonized sales tax (HST) credit: Average amount ($)&quot;
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-##  [1] &quot;Knowledge of languages:           Northern East Cree&quot;                                                                                 
-##  [2] &quot;Language spoken most often at home:           Thai&quot;                                                                                   
-##  [3] &quot;Income of households in 2015:   Under $5,000&quot;                                                                                         
-##  [4] &quot;Income of households in 2015:   Under $5,000&quot;                                                                                         
-##  [5] &quot;Low income in 2015:   18 to 64 years (%)&quot;                                                                                             
-##  [6] &quot;Immigrant status and period of immigration:   Non-permanent residents&quot;                                                                
-##  [7] &quot;Ethnic origin population:  Arab; n.o.s.&quot;                                                                                              
-##  [8] &quot;Ethnic origin population:  Saudi Arabian&quot;                                                                                             
-##  [9] &quot;Household characteristics:   15 to 24 years&quot;                                                                                          
-## [10] &quot;Core housing need: Rate of unaffordable housing&quot;                                                                                      
-## [11] &quot;Highest certificate, diploma or degree:       Degree in medicine, dentistry, veterinary medicine or optometry&quot;                        
-## [12] &quot;Highest certificate, diploma or degree:       Degree in medicine, dentistry, veterinary medicine or optometry&quot;                        
-## [13] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     60. Dental, medical and veterinary residency programs&quot;
-## [14] &quot;Major field of study - Classification of Instructional Programs (CIP) 2016:     60. Dental, medical and veterinary residency programs&quot;
-## [15] &quot;Language used most often at work:           Afro-Asiatic languages, n.i.e.&quot;</code></pre>
+<pre><code>## Bay Street Corridor
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## Income sources:   Government transfers: Average amount ($)
+## Income sources:       Goods and services tax (GST) credit and harmonized sales tax (HST) credit: Average amount ($)
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## Knowledge of languages:           Northern East Cree
+## Language spoken most often at home:           Thai
+## Income of households in 2015:   Under $5,000
+## Income of households in 2015:   Under $5,000
+## Low income in 2015:   18 to 64 years (%)
+## Immigrant status and period of immigration:   Non-permanent residents
+## Ethnic origin population:  Arab; n.o.s.
+## Ethnic origin population:  Saudi Arabian
+## Household characteristics:   15 to 24 years
+## Core housing need: Rate of unaffordable housing
+## Highest certificate, diploma or degree:       Degree in medicine, dentistry, veterinary medicine or optometry
+## Highest certificate, diploma or degree:       Degree in medicine, dentistry, veterinary medicine or optometry
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     60. Dental, medical and veterinary residency programs
+## Major field of study - Classification of Instructional Programs (CIP) 2016:     60. Dental, medical and veterinary residency programs
+## Language used most often at work:           Afro-Asiatic languages, n.i.e.</code></pre>
 <p>The sociodemographic trend for Church-Yonge Corridor is also the
 higher minority population.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 3, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Church-Yonge Corridor&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-## [1] &quot;Household and dwelling characteristics:  Average household size&quot;
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-##  [1] &quot;Mother tongue:               Oriya (Odia)&quot;                                       
-##  [2] &quot;Language spoken most often at home:         Algonquian languages&quot;                
-##  [3] &quot;Language spoken most often at home:               Oriya (Odia)&quot;                  
-##  [4] &quot;Knowledge of languages:         Cree-Montagnais languages&quot;                       
-##  [5] &quot;Knowledge of languages:         Berber languages&quot;                                
-##  [6] &quot;Aboriginal population:     Multiple Aboriginal and non-Aboriginal ancestries&quot;    
-##  [7] &quot;Ethnic origin population:  Qubcois&quot;                                              
-##  [8] &quot;Ethnic origin population:  Catalan&quot;                                              
-##  [9] &quot;Ethnic origin population:  Gabonese&quot;                                             
-## [10] &quot;Ethnic origin population:  Singaporean&quot;                                          
-## [11] &quot;Household characteristics:   No bedrooms&quot;                                        
-## [12] &quot;Language used most often at work:             Vlaams (Flemish)&quot;                  
-## [13] &quot;Language used most often at work:             Italic (Romance) languages, n.i.e.&quot;</code></pre>
+<pre><code>## Church-Yonge Corridor
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## Household and dwelling characteristics:  Average household size
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## Mother tongue:               Oriya (Odia)
+## Language spoken most often at home:         Algonquian languages
+## Language spoken most often at home:               Oriya (Odia)
+## Knowledge of languages:         Cree-Montagnais languages
+## Knowledge of languages:         Berber languages
+## Aboriginal population:     Multiple Aboriginal and non-Aboriginal ancestries
+## Ethnic origin population:  Qubcois
+## Ethnic origin population:  Catalan
+## Ethnic origin population:  Gabonese
+## Ethnic origin population:  Singaporean
+## Household characteristics:   No bedrooms
+## Language used most often at work:             Vlaams (Flemish)
+## Language used most often at work:             Italic (Romance) languages, n.i.e.</code></pre>
 <p>On the other hand, the Mimico neighbourhood has no obvious
 sociodemographic trends.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 4, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Mimico&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-## NULL
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-## NULL</code></pre>
+<pre><code>## Mimico
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## None
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## None</code></pre>
 <p>Refer to index #2 for Church-Yonge Corridor Neighbourhood.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 5, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Church-Yonge Corridor&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-## [1] &quot;Household and dwelling characteristics:  Average household size&quot;
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-##  [1] &quot;Mother tongue:               Oriya (Odia)&quot;                                       
-##  [2] &quot;Language spoken most often at home:         Algonquian languages&quot;                
-##  [3] &quot;Language spoken most often at home:               Oriya (Odia)&quot;                  
-##  [4] &quot;Knowledge of languages:         Cree-Montagnais languages&quot;                       
-##  [5] &quot;Knowledge of languages:         Berber languages&quot;                                
-##  [6] &quot;Aboriginal population:     Multiple Aboriginal and non-Aboriginal ancestries&quot;    
-##  [7] &quot;Ethnic origin population:  Qubcois&quot;                                              
-##  [8] &quot;Ethnic origin population:  Catalan&quot;                                              
-##  [9] &quot;Ethnic origin population:  Gabonese&quot;                                             
-## [10] &quot;Ethnic origin population:  Singaporean&quot;                                          
-## [11] &quot;Household characteristics:   No bedrooms&quot;                                        
-## [12] &quot;Language used most often at work:             Vlaams (Flemish)&quot;                  
-## [13] &quot;Language used most often at work:             Italic (Romance) languages, n.i.e.&quot;</code></pre>
+<pre><code>## Church-Yonge Corridor
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## Household and dwelling characteristics:  Average household size
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## Mother tongue:               Oriya (Odia)
+## Language spoken most often at home:         Algonquian languages
+## Language spoken most often at home:               Oriya (Odia)
+## Knowledge of languages:         Cree-Montagnais languages
+## Knowledge of languages:         Berber languages
+## Aboriginal population:     Multiple Aboriginal and non-Aboriginal ancestries
+## Ethnic origin population:  Qubcois
+## Ethnic origin population:  Catalan
+## Ethnic origin population:  Gabonese
+## Ethnic origin population:  Singaporean
+## Household characteristics:   No bedrooms
+## Language used most often at work:             Vlaams (Flemish)
+## Language used most often at work:             Italic (Romance) languages, n.i.e.</code></pre>
 <p>Finally, the Agincourt South-Malvern West has no obvious
 sociodemographic trends.</p>
 <pre class="r"><code>print_sociodemo_characteristics(top_infractions, 6, hood_profile)</code></pre>
-<pre><code>## [1] &quot;Agincourt South-Malvern West&quot;
-## [1] &quot;&quot;
-## [1] &quot;LOWER EXTREME CHARACTERISTICS&quot;
-## NULL
-## [1] &quot;____________________&quot;
-## [1] &quot;HIGHER EXTREME CHARACTERISTICS&quot;
-## [1] &quot;Knowledge of languages:         Ojibway-Potawatomi languages&quot;</code></pre>
+<pre><code>## Agincourt South-Malvern West
+## _______________________________
+## 
+## LOWER EXTREME CHARACTERISTICS
+## 
+## None
+## 
+## _______________________________
+## 
+## HIGHER EXTREME CHARACTERISTICS
+## 
+## Knowledge of languages:         Ojibway-Potawatomi languages</code></pre>
 </div>
 
 
